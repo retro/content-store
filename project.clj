@@ -1,4 +1,4 @@
-(defproject org.clojars.mihaelkonjevic/content-store "0.0.1"
+(defproject org.clojars.mihaelkonjevic/content-store "0.0.2"
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.10.339"]
                  [cljsjs/moment "2.22.2-0"]
@@ -7,7 +7,7 @@
 
   :min-lein-version "2.5.3"
 
-  :source-paths ["src/clj"]
+  :source-paths ["src/clj" "src/cljs"]
 
   :plugins [[lein-cljsbuild "1.1.4"]]
 
