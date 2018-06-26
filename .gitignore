@@ -5,3 +5,5 @@
 out
 /node_modules
 .DS_Store
+pom.xml
+pom.xml.asc
