@@ -1,0 +1,11 @@
+{
+  "name": "content-store",
+  "version": "0.0.1",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "karma": "^2.0.4",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-cljs-test": "^0.1.0"
+  }
+}
