@@ -6,7 +6,8 @@
             [content-store.content-store.collection :as collection]
             [content-store.content-store.compound :as compound]
             [content-store.content-store.content-type :as content-type]
-            [content-store.content-store :as core]))
+            [content-store.content-store :as core]
+            [clojure.string :as str]))
 
 (def fields-api
   {:atom         {:validate     atom/validate
@@ -24,6 +25,102 @@
    :compound     {:validate     compound/validate
                   :extract-deps compound/extract-deps
                   :make-setter  compound/make-setter}})
+
+(defn path->type [path]
+  (let [p (flatten path)]
+    (keyword (str "field-" (hash p)))))
+
+(declare extract-inline-fields)
+(declare extract-inline-fields-from-field)
+(declare extract-inline-fields-from-block-field-block)
+(declare extract-inline-fields-from-collection-field)
+(declare extract-inline-fields-from-compound-field)
+
+(defn extract-inline-fields-from-block-field [field state]
+  (let [fields (:fields field)
+        path (conj (:path state) (:type field))
+        {:keys [field-fields field-extracted-fields]}
+        (reduce-kv
+         (fn [acc idx [k v]]
+           (if (map? v)
+             (let [field-path [path [idx k]]
+                   field-type (path->type field-path)
+                   f (assoc v :type field-type)
+                   e (extract-inline-fields-from-field f {:extracted-fields []
+                                                          :fields []
+                                                          :path field-path})]
+               (-> acc
+                   (update :field-extracted-fields #(flatten [% (:fields e) (:extracted-fields e)]))
+                   (update :field-fields #(conj % [k field-type]))))
+             (update acc :field-fields #(conj % [k v]))))
+         {:field-fields []
+          :field-extracted-fields []}
+         fields)
+        processed-field (assoc field :fields field-fields)]
+    (-> state
+        (update :fields #(conj % processed-field))
+        (update :extracted-fields #(concat % field-extracted-fields)))))
+
+(defn extract-inline-fields-from-collection-field [field state]
+  (let [allowed-type (:allowed-type field)]
+    (if (map? allowed-type)
+      (let [field-path [(:path state) (:type field) :allowed-type]
+            field-type (path->type field-path)
+            processed-field (assoc field :allowed-type field-type)
+            f (assoc allowed-type :type field-type)
+            e (extract-inline-fields-from-field f {:extracted-fields []
+                                                   :fields []
+                                                   :path field-path})]
+        (update state :fields #(flatten [% processed-field (:fields e) (:extracted-fields e)])))
+      (update state :fields #(conj % field)))))
+
+(defn extract-inline-fields-from-compound-field [field state]
+  (let [fields (:allowed-types field)
+        path (conj (:path state) (:type field))
+        {:keys [allowed-types field-extracted-fields]}
+        (reduce-kv
+         (fn [acc idx v]
+           (if (map? v)
+             (let [field-path [path idx]
+                   field-type (path->type field-path)
+                   f (assoc v :type field-type)
+                   e (extract-inline-fields-from-field f {:extracted-fields []
+                                                          :fields []
+                                                          :path field-path})]
+               (-> acc
+                   (update :field-extracted-fields #(flatten [% (:fields e) (:extracted-fields e)]))
+                   (update :allowed-types #(conj % field-type))))
+             (update acc :allowed-types #(conj % v))))
+         {:allowed-types []
+          :field-extracted-fields []}
+         fields)
+        processed-field (assoc field :allowed-types allowed-types)]
+
+    (-> state
+        (update :fields #(conj % processed-field))
+        (update :extracted-fields #(concat % field-extracted-fields)))))
+
+
+(defn extract-inline-fields-from-field [field state]
+   (case (:field-type field)
+     :block (extract-inline-fields-from-block-field field state)
+     :collection (extract-inline-fields-from-collection-field field state)
+     :content-type (extract-inline-fields-from-block-field field state)
+     :compound (extract-inline-fields-from-compound-field field state)
+     (update state :fields #(conj % field))))
+
+(defn extract-inline-fields
+  ([fields]
+   (let [{:keys [fields extracted-fields]}
+         (extract-inline-fields fields {:extracted-fields []
+                                        :path []
+                                        :fields []})]
+     (vec (concat fields extracted-fields))))
+  ([fields state]
+   (reduce-kv
+    (fn [m k v]
+      (extract-inline-fields-from-field v m))
+    state fields)))
 
 (defn validate-field [fields field]
   (let [field-type (:field-type field)

@@ -1,8 +1,8 @@
 (ns content-store.content-store.block
   (:require [content-store.content-store :refer [not-empty-validator
-                                            make-is-unique-type-validator
-                                            make-valid-field-deps-validator
-                                            make-content-type-or-block-setter]]
+                                                 make-is-unique-type-validator
+                                                 make-valid-field-deps-validator
+                                                 make-content-type-or-block-setter]]
             [forms.validator :refer [validator]]))
 
 (defn validate [store field]
