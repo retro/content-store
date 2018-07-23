@@ -1,4 +1,4 @@
-(defproject org.clojars.mihaelkonjevic/content-store "0.0.2"
+(defproject org.clojars.mihaelkonjevic/content-store "0.0.3"
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.10.339"]
                  [cljsjs/moment "2.22.2-0"]
